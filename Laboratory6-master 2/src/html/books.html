@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Books Summary</title>
+    <link rel="stylesheet" type="text/css" href="books.css">
+
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script> 
+    
+    <script type="text/javascript">
+    
+      google.charts.load('current', {packages:["table"]});
+      google.charts.setOnLoadCallback(drawChart);
+      
+      function drawChart() {
+        console.log("(re)loading data:");
+        jsonData = $.ajax({
+          url:      "booksJSON.php?",
+          dataType : "text"
+          }).done(function( rawJSON ) {
+            $('#JSON_text').val(rawJSON);
+            var jsonData = JSON.parse(rawJSON);
+            console.log(jsonData);
+            var data = new google.visualization.arrayToDataTable(jsonData,false);
+
+            // Draw Table
+            var table = new google.visualization.Table(document.getElementById('table_div'));
+            table.draw(data, {allowHtml:true,showRowNumber: false, width: '100%', height: '100%'});
+                });
+      }
+      
+      function submitForm() {
+        console.log("CSV upload:");
+        var fd = new FormData(document.getElementById("fileinfo"));
+        fd.append("submit", "");
+        $.ajax({
+          url: "addBooks.php",
+          type: "POST",
+          data: fd,
+          enctype: 'multipart/form-data',
+          processData: false,  // tell jQuery not to process the data
+          contentType: false,   // tell jQuery not to set contentType
+        }).done(function( data ) {
+            console.log( data );
+            drawChart();
+        });
+        return false;
+      }
+      
+      function showJSON() {
+        $(".text-hidden").toggleClass("text");
+
+        if ($("#JSON_link").text() == "Hide Data ...")
+          $("#JSON_link").text("Show Data ...");
+        else
+          $("#JSON_link").text("Hide Data ...");
+      }
+  
+      function resetDB() {
+        console.log("resetDB:");
+        $.ajax({
+            url: "resetDB.php",
+            dataType: "json",
+          }).done(function( data ) {
+                console.log( data );
+                if (data["status"] == "success")
+                  drawChart();
+            });
+
+        return false;
+       }
+
+   </script>
+  </head>
+  <body>
+    <div id="column_left"><a href="#" onclick="drawChart();return false;">Reload Data ...</a></div>
+    <div id="column_center">
+      <form method="post" id="fileinfo" name="fileinfo" enctype="multipart/form-data">
+      <a href="books.csv">Download (as CSV)</a>
+        <label>Select a file:</label><input id="csv" type="file" name="csvFile" required />
+        <input type="button" value="Upload" onclick="return submitForm();" />
+        <input type="button" value="Reset DB" onclick="return resetDB();" />
+      </form>
+    </div>
+    <div id="column_right"><a id="JSON_link" href="#" onclick="showJSON();return false;">Show Data ...</a></div>
+    <div id="chart_div"></div>
+    <div id="table_div"></div>
+    <textarea readonly id="JSON_text" class="text-hidden"></textarea>
+  </body>
+</html>
